@@ -196,6 +196,7 @@
   <main>
     <div class="page-title">我的活動相簿</div>
     <div class="page-hint" id="pageHint">這裡管理您建立的相簿。</div>
+    <div id="adminTools"></div>
     <button class="btn btn-primary btn-big" onclick="openForm()">＋ 新增活動相簿</button>
     <div id="albumList"></div>
   </main>
@@ -274,6 +275,10 @@ function enterApp(res){
   document.getElementById('pageHint').textContent = ME.role==='admin'
     ? '您是管理員，可管理全校所有相簿。'
     : '這裡管理您建立的相簿。';
+  document.getElementById('adminTools').innerHTML = ME.role==='admin'
+    ? '<button class="btn btn-line" style="margin-bottom:14px" '+
+      'onclick="openUserManager()">👥 使用者管理</button>'
+    : '';
   renderAlbums(res.albums);
 }
 
@@ -460,6 +465,75 @@ function askDelete(albumId){
           renderAlbums(res.albums); toast('已刪除');
         });
      }}]);
+}
+
+/* ===== 使用者管理（限管理員）===== */
+function openUserManager(){
+  showModal('使用者管理','<div class="spin">載入中…</div>',[]);
+  api('listUsers').then(function(res){
+    if(!res.ok){ toast(res.error); closeModal(); return; }
+    renderUserManager(res.users);
+  });
+}
+function renderUserManager(users){
+  const depts=['教務','學務','總務','輔導','其他'];
+  let html=
+    '<div class="page-hint" style="margin-bottom:12px">'+
+      '學校 @nhps.hc.edu.tw 帳號不必登記，登入即可使用後台。'+
+      '這裡只需加「用個人 Gmail 的同仁」，或把某人設為管理員。</div>'+
+    '<div style="background:var(--blue-soft);border-radius:10px;padding:14px;margin-bottom:16px">'+
+      '<div class="field"><label>Email</label>'+
+        '<input id="uEmail" placeholder="對方的 Google 帳號"></div>'+
+      '<div class="field"><label>姓名</label><input id="uName" placeholder="同仁姓名"></div>'+
+      '<div style="display:flex;gap:10px">'+
+        '<div class="field" style="flex:1"><label>角色</label>'+
+          '<select id="uRole"><option value="editor">編輯</option>'+
+          '<option value="admin">管理員</option></select></div>'+
+        '<div class="field" style="flex:1"><label>處室</label>'+
+          '<select id="uDept">'+depts.map(function(d){return '<option>'+d+'</option>';}).join('')+
+          '</select></div>'+
+      '</div>'+
+      '<button class="btn btn-primary" style="width:100%" onclick="addUser()">＋ 加入名單</button>'+
+    '</div>'+
+    '<div style="font-weight:800;margin-bottom:6px">目前登記名單（'+users.length+' 人）</div>';
+  if(!users.length){
+    html+='<div class="page-hint">名單還是空的。</div>';
+  }else{
+    html+=users.map(function(u){
+      const isAdmin=(u.role==='admin');
+      return '<div style="display:flex;align-items:center;gap:8px;'+
+        'padding:10px 0;border-bottom:1px solid var(--line)">'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-weight:700">'+esc(u.name||'(未填姓名)')+'　'+
+            '<span style="font-size:.68rem;font-weight:700;padding:1px 8px;border-radius:10px;'+
+            (isAdmin?'background:#dff0e2;color:#357f44':'background:#eef1f9;color:#063295')+'">'+
+            (isAdmin?'管理員':'編輯')+'</span></div>'+
+          '<div style="font-size:.78rem;color:var(--grey);white-space:nowrap;'+
+            'overflow:hidden;text-overflow:ellipsis">'+esc(u.email)+
+            (u.dept?'　'+esc(u.dept):'')+'</div>'+
+        '</div>'+
+        '<button class="btn btn-sm btn-red" onclick="removeUser(\''+esc(u.email)+'\')">移除</button>'+
+      '</div>';
+    }).join('');
+  }
+  setModalBody(html);
+  setModalFoot([{label:'完成',cls:'btn-primary',fn:closeModal}]);
+}
+function addUser(){
+  const form={email:val('uEmail').trim(),name:val('uName').trim(),
+    role:val('uRole'),dept:val('uDept')};
+  if(!form.email){ toast('請輸入 Email'); return; }
+  api('addUser',{form:form}).then(function(res){
+    if(!res.ok){ toast(res.error); return; }
+    renderUserManager(res.users); toast('已加入名單');
+  });
+}
+function removeUser(email){
+  if(!window.confirm('確定要把「'+email+'」移出名單嗎？')) return;
+  api('removeUser',{email:email}).then(function(res){
+    if(!res.ok){ toast(res.error); return; }
+    renderUserManager(res.users); toast('已移除');
+  });
 }
 
 /* ----- 共用小工具 ----- */
