@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>內湖國小 ‧ 校園活動相簿 — 後台管理</title>
+<style>
+  :root{
+    --blue:#063295; --blue-dark:#04246b; --blue-soft:#eef1f9;
+    --red:#d92d24; --green:#357f44; --yellow:#e8b517;
+    --ink:#23262e; --grey:#6b7280; --line:#e4e6ec;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC",-apple-system,sans-serif;
+    color:var(--ink);background:#f4f5f8;line-height:1.7;
+  }
+  img{display:block;}
+  button{font-family:inherit;cursor:pointer;}
+
+  /* ===== 登入畫面 ===== */
+  #viewLogin{
+    min-height:100vh;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;padding:24px;
+  }
+  #viewLogin .crest{width:96px;height:96px;border-radius:50%;
+    background:#fff;padding:6px;box-shadow:0 4px 16px rgba(0,0,0,.12);}
+  #viewLogin .crest img{width:100%;height:100%;object-fit:contain;border-radius:50%;}
+  #viewLogin h1{font-size:1.5rem;color:var(--blue);margin-top:20px;}
+  #viewLogin .sub{color:var(--grey);font-size:.95rem;margin-top:6px;margin-bottom:28px;}
+  #gbtn{display:flex;justify-content:center;min-height:44px;}
+  #loginMsg{margin-top:18px;font-size:.9rem;max-width:380px;}
+  .warn-box{
+    background:#fff8e1;border:1px solid var(--yellow);border-radius:10px;
+    padding:14px 16px;font-size:.86rem;color:#7a5b00;max-width:420px;margin-top:18px;
+  }
+
+  /* ===== 主畫面 ===== */
+  #viewApp{display:none;}
+  header{background:var(--blue);color:#fff;}
+  .topbar{
+    max-width:980px;margin:0 auto;padding:12px 20px;
+    display:flex;align-items:center;gap:12px;
+  }
+  .topbar .crest{width:44px;height:44px;border-radius:50%;background:#fff;padding:3px;}
+  .topbar .crest img{width:100%;height:100%;object-fit:contain;border-radius:50%;}
+  .topbar .t-name{font-size:1.1rem;font-weight:800;}
+  .topbar .who{margin-left:auto;font-size:.86rem;text-align:right;line-height:1.4;}
+  .topbar .who b{display:block;font-size:.95rem;}
+  .logout{
+    background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.4);
+    border-radius:18px;padding:5px 14px;font-size:.8rem;margin-left:12px;
+  }
+
+  main{max-width:980px;margin:0 auto;padding:22px 20px 60px;}
+  .page-title{font-size:1.2rem;font-weight:800;color:var(--blue);margin-bottom:4px;}
+  .page-hint{color:var(--grey);font-size:.88rem;margin-bottom:18px;}
+
+  .btn{
+    border:0;border-radius:9px;font-size:.92rem;font-weight:700;
+    padding:11px 20px;transition:.15s;
+  }
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-primary:hover{background:var(--blue-dark);}
+  .btn-big{display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;padding:16px;font-size:1.05rem;margin-bottom:22px;}
+  .btn-line{background:#fff;border:1.5px solid var(--blue);color:var(--blue);}
+  .btn-sm{font-size:.82rem;padding:7px 13px;border-radius:7px;}
+  .btn-green{background:var(--green);color:#fff;}
+  .btn-grey{background:#eef0f4;color:var(--ink);}
+  .btn-red{background:#fff;border:1.5px solid var(--red);color:var(--red);}
+
+  /* ===== 相簿卡片 ===== */
+  .album{
+    background:#fff;border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;margin-bottom:14px;
+  }
+  .album-top{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+  .album-title{font-size:1.08rem;font-weight:800;}
+  .album-meta{color:var(--grey);font-size:.84rem;margin-top:3px;}
+  .badge{
+    font-size:.76rem;font-weight:700;padding:3px 11px;border-radius:20px;
+    white-space:nowrap;
+  }
+  .badge.草稿{background:#fdf0d2;color:#8a6500;}
+  .badge.已發布{background:#dff0e2;color:var(--green);}
+  .album-actions{
+    margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;
+    border-top:1px dashed var(--line);padding-top:13px;
+  }
+  .empty{
+    background:#fff;border:1px dashed #b9c2dd;border-radius:12px;
+    padding:40px 20px;text-align:center;color:var(--grey);
+  }
+
+  /* ===== 彈出視窗 ===== */
+  .overlay{
+    display:none;position:fixed;inset:0;background:rgba(8,16,40,.55);
+    z-index:50;padding:20px;overflow:auto;
+  }
+  .overlay.show{display:flex;align-items:flex-start;justify-content:center;}
+  .modal{
+    background:#fff;border-radius:14px;width:100%;max-width:520px;
+    margin:auto;overflow:hidden;
+  }
+  .modal-head{
+    background:var(--blue);color:#fff;padding:14px 20px;
+    font-size:1.05rem;font-weight:800;
+  }
+  .modal-body{padding:20px;}
+  .field{margin-bottom:15px;}
+  .field label{display:block;font-size:.88rem;font-weight:700;margin-bottom:5px;}
+  .field .req{color:var(--red);}
+  .field .tip{font-size:.78rem;color:var(--grey);font-weight:400;}
+  .field input,.field select,.field textarea{
+    width:100%;font-family:inherit;font-size:1rem;padding:10px 12px;
+    border:1.5px solid var(--line);border-radius:8px;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{
+    outline:0;border-color:var(--blue);
+  }
+  .field textarea{resize:vertical;min-height:88px;}
+  .modal-foot{
+    display:flex;gap:10px;justify-content:flex-end;
+    padding:14px 20px;border-top:1px solid var(--line);
+  }
+
+  /* 建立成功後的步驟提示 */
+  .steps{background:var(--blue-soft);border-radius:10px;padding:16px;font-size:.9rem;}
+  .steps .s{display:flex;gap:10px;margin-bottom:10px;}
+  .steps .n{
+    flex-shrink:0;width:24px;height:24px;border-radius:50%;
+    background:var(--blue);color:#fff;font-size:.82rem;font-weight:800;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  /* 選封面 */
+  .photo-grid{display:grid;gap:8px;
+    grid-template-columns:repeat(auto-fill,minmax(96px,1fr));}
+  .pphoto{
+    height:88px;border-radius:8px;background-size:cover;background-position:center;
+    border:3px solid transparent;cursor:pointer;position:relative;
+  }
+  .pphoto.sel{border-color:var(--red);}
+  .pphoto.sel::after{
+    content:'✓ 封面';position:absolute;left:4px;bottom:4px;
+    background:var(--red);color:#fff;font-size:.66rem;font-weight:700;
+    padding:1px 6px;border-radius:4px;
+  }
+  .confirm-line{
+    display:flex;gap:9px;align-items:flex-start;
+    background:#fff8e1;border:1px solid var(--yellow);border-radius:9px;
+    padding:12px;font-size:.85rem;color:#7a5b00;margin-bottom:6px;
+  }
+  .confirm-line input{margin-top:4px;width:18px;height:18px;flex-shrink:0;}
+  .toast{
+    position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:11px 22px;border-radius:24px;
+    font-size:.88rem;z-index:80;opacity:0;transition:.25s;pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+  .spin{text-align:center;color:var(--grey);padding:30px;}
+
+  @media(max-width:560px){
+    .topbar .t-name{font-size:.98rem;}
+    .album-actions .btn{flex:1;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= 登入畫面 ================= -->
+<div id="viewLogin">
+  <div class="crest"><img src="logo.png" alt="內湖國小校徽"></div>
+  <h1>校園活動相簿 — 後台管理</h1>
+  <div class="sub">新竹市內湖國小　‧　請用您的 Google 帳號登入</div>
+  <div id="gbtn"></div>
+  <div id="loginMsg"></div>
+</div>
+
+<!-- ================= 主畫面 ================= -->
+<div id="viewApp">
+  <header>
+    <div class="topbar">
+      <div class="crest"><img src="logo.png" alt="校徽"></div>
+      <div class="t-name">校園活動相簿 ‧ 後台</div>
+      <div class="who">
+        <b id="whoName">—</b>
+        <span id="whoDept"></span>
+      </div>
+      <a class="logout" href="index.html" target="_blank"
+         style="text-decoration:none">🔗 家長端網站</a>
+      <button class="logout" onclick="logout()">登出</button>
+    </div>
+  </header>
+  <main>
+    <div class="page-title">我的活動相簿</div>
+    <div class="page-hint" id="pageHint">這裡管理您建立的相簿。</div>
+    <button class="btn btn-primary btn-big" onclick="openForm()">＋ 新增活動相簿</button>
+    <div id="albumList"></div>
+  </main>
+</div>
+
+<!-- ================= 彈出視窗 ================= -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   ★ 兩個必填設定
+   ============================================================ */
+// 1) Phase 1 部署好的後端網址（exec 結尾）。一般不用改。
+const EXEC_URL = 'https://script.google.com/macros/s/AKfycbxTpwYdoPYSUGPG_sh5LXvoWJkrtOWVBSmFaW3oFPrO3_9cG1Wj17wrnqwwnBnd_Csi/exec';
+
+// 2) Google 登入用的 OAuth 用戶端 ID。
+//    依「Phase2_部署說明.md」步驟 A 建立後，把整串貼進下面引號。
+const CLIENT_ID = '303982125734-pbheqbqfvim902mci9lg628gln41l2no.apps.googleusercontent.com';
+
+/* ============================================================ */
+let ID_TOKEN = '';   // 登入後拿到的 Google 憑證
+let ME = null;       // 目前登入者資訊
+let ALBUMS = [];     // 目前的相簿清單
+
+/* ----- Google 登入 ----- */
+function gisReady(){
+  if(CLIENT_ID.indexOf('貼上') > -1){
+    document.getElementById('gbtn').style.display='none';
+    document.getElementById('loginMsg').innerHTML=
+      '<div class="warn-box">尚未設定 OAuth 用戶端 ID。請依「Phase2_部署說明.md」'+
+      '步驟 A 建立後，貼進本檔案上方的 CLIENT_ID。</div>';
+    return;
+  }
+  google.accounts.id.initialize({ client_id:CLIENT_ID, callback:onSignIn });
+  google.accounts.id.renderButton(document.getElementById('gbtn'),
+    { type:'standard', size:'large', shape:'pill', text:'signin_with', locale:'zh-TW' });
+}
+
+function onSignIn(resp){
+  ID_TOKEN = resp.credential;
+  document.getElementById('loginMsg').textContent='登入中…';
+  api('login').then(function(res){
+    if(res.ok){ enterApp(res); }
+    else{ document.getElementById('loginMsg').innerHTML=
+      '<div class="warn-box">'+res.error+'</div>'; }
+  });
+}
+
+function logout(){
+  ID_TOKEN=''; ME=null;
+  if(window.google&&google.accounts) google.accounts.id.disableAutoSelect();
+  document.getElementById('viewApp').style.display='none';
+  document.getElementById('viewLogin').style.display='flex';
+  document.getElementById('loginMsg').textContent='';
+}
+
+/* ----- 呼叫後端 ----- */
+function api(cmd, extra){
+  const payload = Object.assign({ cmd:cmd, idToken:ID_TOKEN }, extra||{});
+  return fetch(EXEC_URL, { method:'POST', body:JSON.stringify(payload) })
+    .then(function(r){ return r.json(); })
+    .catch(function(){ return { ok:false, error:'連線失敗，請檢查網路後再試。' }; });
+}
+
+/* ----- 進入主畫面 ----- */
+function enterApp(res){
+  ME = res.user;
+  document.getElementById('viewLogin').style.display='none';
+  document.getElementById('viewApp').style.display='block';
+  document.getElementById('whoName').textContent=ME.name+' 您好';
+  document.getElementById('whoDept').textContent=
+    ME.dept + ('｜' + (ME.role==='admin'?'管理員':'編輯'));
+  document.getElementById('pageHint').textContent = ME.role==='admin'
+    ? '您是管理員，可管理全校所有相簿。'
+    : '這裡管理您建立的相簿。';
+  renderAlbums(res.albums);
+}
+
+function renderAlbums(list){
+  ALBUMS = list||[];
+  const box=document.getElementById('albumList');
+  if(!ALBUMS.length){
+    box.innerHTML='<div class="empty">目前還沒有相簿。<br>'+
+      '按上方「＋ 新增活動相簿」開始建立第一本。</div>';
+    return;
+  }
+  box.innerHTML=ALBUMS.map(function(a){
+    return '<div class="album">'+
+      '<div class="album-top">'+
+        '<div style="flex:1;min-width:180px">'+
+          '<div class="album-title">'+esc(a.title)+'</div>'+
+          '<div class="album-meta">'+a.eventDate+'　‧　'+esc(a.dept)+'處室'+
+            '　‧　'+a.schoolYear+'學年度</div>'+
+        '</div>'+
+        '<span class="badge '+a.status+'">'+a.status+'</span>'+
+      '</div>'+
+      '<div class="album-actions">'+
+        '<button class="btn btn-sm btn-line" onclick="openForm(\''+a.albumId+'\')">✏ 編輯資料</button>'+
+        '<button class="btn btn-sm btn-grey" onclick="openFolder(\''+a.albumId+'\')">📂 上傳照片</button>'+
+        '<button class="btn btn-sm btn-grey" onclick="openCover(\''+a.albumId+'\')">🖼 選封面</button>'+
+        (a.status==='已發布'
+          ? '<button class="btn btn-sm btn-grey" onclick="askUnpublish(\''+a.albumId+'\')">收回（轉草稿）</button>'
+          : '<button class="btn btn-sm btn-green" onclick="askPublish(\''+a.albumId+'\')">✓ 發布</button>')+
+        '<button class="btn btn-sm btn-red" onclick="askDelete(\''+a.albumId+'\')">刪除</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+/* ----- 新增 / 編輯相簿 ----- */
+function openForm(albumId){
+  const a = albumId ? findAlbum(albumId) : null;
+  const depts=['教務','學務','總務','輔導','其他'];
+  showModal((a?'編輯相簿資料':'新增活動相簿'),
+    '<div class="field"><label>活動名稱 <span class="req">*</span></label>'+
+      '<input id="fTitle" value="'+esc(a?a.title:'')+'" placeholder="例如：114學年度校慶運動會"></div>'+
+    '<div class="field"><label>活動日期 <span class="req">*</span></label>'+
+      '<input id="fDate" type="date" value="'+(a?a.eventDate:'')+'"></div>'+
+    '<div class="field"><label>處室</label><select id="fDept">'+
+      depts.map(function(d){ return '<option '+
+        ((a?a.dept:ME.dept)===d?'selected':'')+'>'+d+'</option>'; }).join('')+
+      '</select></div>'+
+    '<div class="field"><label>主題標籤 <span class="tip">（用逗號分隔，方便家長搜尋）</span></label>'+
+      '<input id="fTags" value="'+esc(a?a.tags:'')+'" placeholder="例如：運動會,體育"></div>'+
+    '<div class="field"><label>活動說明 <span class="tip">（一兩句話，會顯示在相簿頁）</span></label>'+
+      '<textarea id="fDesc" placeholder="簡單描述這場活動。">'+esc(a?a.description:'')+'</textarea></div>',
+    [{label:'取消',cls:'btn-grey',fn:closeModal},
+     {label:(a?'儲存':'建立相簿'),cls:'btn-primary',fn:function(){ submitForm(albumId); }}]);
+}
+
+function submitForm(albumId){
+  const form={
+    title:val('fTitle').trim(), eventDate:val('fDate'),
+    dept:val('fDept'), tags:val('fTags').trim(), description:val('fDesc').trim()
+  };
+  if(!form.title||!form.eventDate){ toast('請填寫活動名稱與日期'); return; }
+  busyModal('儲存中…');
+  const cmd = albumId ? 'update' : 'create';
+  const extra = albumId ? {albumId:albumId, form:form} : {form:form};
+  api(cmd, extra).then(function(res){
+    if(!res.ok){ toast(res.error); reopenForm(albumId,form); return; }
+    if(albumId){ renderAlbums(res.albums); closeModal(); toast('已儲存'); }
+    else{ renderAlbums(res.albums); showCreated(res.folderUrl); }
+  });
+}
+function reopenForm(albumId){ openForm(albumId); }
+
+/* 建立成功 → 顯示「下一步」步驟 */
+function showCreated(folderUrl){
+  showModal('相簿已建立 ✓',
+    '<div class="steps">'+
+      '<div class="s"><div class="n">1</div><div>相簿已建好（目前是<b>草稿</b>，家長還看不到）。</div></div>'+
+      '<div class="s"><div class="n">2</div><div>點下方按鈕開啟 Drive 資料夾，'+
+        '把這場活動的照片<b>直接拖進去</b>。</div></div>'+
+      '<div class="s"><div class="n">3</div><div>回到這裡，「選封面」挑一張，再按「發布」，家長就看得到了。</div></div>'+
+    '</div>'+
+    '<a href="'+folderUrl+'" target="_blank" style="text-decoration:none">'+
+      '<button class="btn btn-primary btn-big" style="margin-top:16px">'+
+      '📂 開啟資料夾，上傳照片</button></a>',
+    [{label:'完成',cls:'btn-primary',fn:closeModal}]);
+}
+
+/* ----- 開啟 Drive 資料夾 ----- */
+function openFolder(albumId){
+  const a=findAlbum(albumId);
+  if(a&&a.folderUrl) window.open(a.folderUrl,'_blank');
+  else toast('找不到資料夾連結');
+}
+
+/* ----- 選封面 ----- */
+function openCover(albumId){
+  showModal('選擇封面照片','<div class="spin">照片載入中…</div>',[]);
+  api('listPhotos',{albumId:albumId}).then(function(res){
+    if(!res.ok){ toast(res.error); closeModal(); return; }
+    if(!res.photos.length){
+      setModalBody('<div class="empty">這本相簿還沒有照片。<br>'+
+        '請先用「上傳照片」把照片拖進資料夾。</div>');
+      setModalFoot([{label:'關閉',cls:'btn-grey',fn:closeModal}]);
+      return;
+    }
+    let chosen=res.coverPhotoId||'';
+    function draw(){
+      setModalBody('<div class="page-hint">點一張照片設為相簿封面。</div>'+
+        '<div class="photo-grid">'+res.photos.map(function(p){
+          return '<div class="pphoto'+(p.id===chosen?' sel':'')+'" '+
+            'style="background-image:url(\''+p.thumb+'\')" '+
+            'data-id="'+p.id+'"></div>';
+        }).join('')+'</div>');
+      document.querySelectorAll('.pphoto').forEach(function(el){
+        el.onclick=function(){
+          chosen=el.getAttribute('data-id');
+          api('setCover',{albumId:albumId,photoId:chosen}).then(function(r){
+            if(r.ok){ draw(); toast('封面已更新'); }
+            else toast(r.error);
+          });
+        };
+      });
+    }
+    draw();
+    setModalFoot([{label:'完成',cls:'btn-primary',fn:closeModal}]);
+  });
+}
+
+/* ----- 發布（含相簿名稱與肖像權確認，避免誤發）----- */
+function askPublish(albumId){
+  const a=findAlbum(albumId);
+  showModal('確認發布相簿',
+    '<p style="margin-bottom:4px">您即將發布這本相簿：</p>'+
+    '<p style="font-size:1.12rem;font-weight:800;color:var(--blue);margin-bottom:6px">'+
+      '「'+esc(a.title)+'」</p>'+
+    '<p class="page-hint" style="margin-bottom:14px">'+esc(a.eventDate)+'　‧　'+
+      esc(a.dept)+'處室。發布後，這本相簿會<b>立即出現在家長端網站</b>。</p>'+
+    '<label class="confirm-line">'+
+      '<input type="checkbox" id="cAgree">'+
+      '<span>我已確認：本相簿照片符合學校影像使用同意範圍，'+
+      '未包含不宜公開的學生個資。</span></label>',
+    [{label:'取消',cls:'btn-grey',fn:closeModal},
+     {label:'確認發布',cls:'btn-green',fn:function(){
+        if(!document.getElementById('cAgree').checked){
+          toast('請先勾選確認項目'); return; }
+        closeModal(); setStatus(albumId,true);
+     }}]);
+}
+
+/* ----- 收回（轉草稿）確認 ----- */
+function askUnpublish(albumId){
+  const a=findAlbum(albumId);
+  showModal('收回相簿',
+    '<p>確定要把「<b>'+esc(a.title)+'</b>」收回成草稿嗎？</p>'+
+    '<p class="page-hint" style="margin-top:8px">'+
+      '收回後，家長端就看不到這本相簿（相簿資料與照片都會保留）。</p>',
+    [{label:'取消',cls:'btn-grey',fn:closeModal},
+     {label:'確定收回',cls:'btn-grey',fn:function(){
+        closeModal(); setStatus(albumId,false);
+     }}]);
+}
+
+function setStatus(albumId,publish){
+  toast(publish?'發布中…':'處理中…');
+  api('setStatus',{albumId:albumId,publish:publish}).then(function(res){
+    if(!res.ok){ toast(res.error); return; }
+    renderAlbums(res.albums);
+    toast(publish?'已發布 ✓':'已收回為草稿');
+  });
+}
+
+/* ----- 刪除 ----- */
+function askDelete(albumId){
+  const a=findAlbum(albumId);
+  showModal('刪除相簿',
+    '<p>確定要刪除「<b>'+esc(a.title)+'</b>」嗎？</p>'+
+    '<p class="page-hint" style="margin-top:8px">'+
+    '相簿資料會從清單移除；Drive 裡的照片資料夾會保留，不會一起刪掉。</p>',
+    [{label:'取消',cls:'btn-grey',fn:closeModal},
+     {label:'確定刪除',cls:'btn-red',fn:function(){
+        closeModal();
+        api('delete',{albumId:albumId}).then(function(res){
+          if(!res.ok){ toast(res.error); return; }
+          renderAlbums(res.albums); toast('已刪除');
+        });
+     }}]);
+}
+
+/* ----- 共用小工具 ----- */
+function showModal(title,bodyHtml,buttons){
+  document.getElementById('modal').innerHTML=
+    '<div class="modal-head">'+title+'</div>'+
+    '<div class="modal-body" id="mBody">'+bodyHtml+'</div>'+
+    '<div class="modal-foot" id="mFoot"></div>';
+  setModalFoot(buttons||[]);
+  document.getElementById('overlay').classList.add('show');
+}
+function setModalBody(html){ document.getElementById('mBody').innerHTML=html; }
+function setModalFoot(buttons){
+  const foot=document.getElementById('mFoot');
+  if(!buttons.length){ foot.style.display='none'; return; }
+  foot.style.display='flex';
+  foot.innerHTML='';
+  buttons.forEach(function(b){
+    const el=document.createElement('button');
+    el.className='btn '+b.cls; el.textContent=b.label; el.onclick=b.fn;
+    foot.appendChild(el);
+  });
+}
+function busyModal(msg){ setModalBody('<div class="spin">'+msg+'</div>'); setModalFoot([]); }
+function closeModal(){ document.getElementById('overlay').classList.remove('show'); }
+function findAlbum(id){ return ALBUMS.filter(function(a){return a.albumId===id;})[0]; }
+function val(id){ return document.getElementById(id).value; }
+function esc(s){ return String(s==null?'':s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){ t.classList.remove('show'); },2600);
+}
+</script>
+<!-- Google 登入元件：放在最後載入，確保上面的 gisReady 已定義 -->
+<script src="https://accounts.google.com/gsi/client" onload="gisReady()"></script>
+</body>
+</html>

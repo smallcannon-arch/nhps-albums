@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>內湖國小 ‧ 校園活動相簿</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  /* ===== 色票：取自內湖國小校徽 ===== */
+  :root{
+    --blue:#063295; --blue-dark:#04246b; --blue-soft:#eef1f9;
+    --red:#d92d24; --green:#357f44; --yellow:#e8b517;
+    --ink:#23262e; --grey:#6b7280; --line:#e4e6ec;
+    --card-radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:"Microsoft JhengHei","PingFang TC","Noto Sans TC",-apple-system,sans-serif;
+    color:var(--ink);background:#fff;line-height:1.7;
+  }
+  img{display:block;}
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;cursor:pointer;}
+
+  /* ===== 頁首 ===== */
+  header{background:var(--blue);color:#fff;}
+  .topbar{max-width:1180px;margin:0 auto;padding:14px 22px;
+    display:flex;align-items:center;gap:16px;}
+  .crest{width:58px;height:58px;border-radius:50%;background:#fff;
+    padding:3px;flex-shrink:0;}
+  .crest img{width:100%;height:100%;object-fit:contain;border-radius:50%;}
+  .site-name{font-size:1.45rem;font-weight:800;letter-spacing:1px;}
+  .site-sub{font-size:.82rem;opacity:.8;letter-spacing:3px;margin-top:1px;}
+  .topbar .official{margin-left:auto;font-size:.78rem;
+    border:1px solid rgba(255,255,255,.45);padding:4px 12px;border-radius:20px;opacity:.9;}
+  .breadcrumb{background:var(--blue-dark);color:rgba(255,255,255,.82);font-size:.8rem;}
+  .breadcrumb div{max-width:1180px;margin:0 auto;padding:7px 22px;}
+  .breadcrumb a{color:#fff;}
+  .breadcrumb .sep{margin:0 7px;opacity:.5;}
+
+  /* ===== 主視覺帶 ===== */
+  .hero{background:linear-gradient(105deg,var(--blue) 0%,#0a44b8 100%);color:#fff;}
+  .hero-in{max-width:1180px;margin:0 auto;padding:30px 22px 34px;}
+  .hero h1{font-size:1.7rem;font-weight:800;}
+  .hero h1 .dot{color:var(--yellow);}
+  .hero p{opacity:.86;margin-top:6px;font-size:.95rem;}
+
+  /* ===== 篩選列 ===== */
+  .toolbar{background:var(--blue-soft);border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:20;}
+  .toolbar-in{max-width:1180px;margin:0 auto;padding:14px 22px;
+    display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;}
+  .filter-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .filter-label{font-size:.82rem;color:var(--grey);font-weight:700;}
+  .pill{border:1.5px solid var(--line);background:#fff;color:var(--ink);
+    font-size:.85rem;padding:5px 14px;border-radius:20px;cursor:pointer;
+    font-family:inherit;transition:.15s;}
+  .pill:hover{border-color:var(--blue);}
+  .pill.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .pill.year.active{background:var(--red);border-color:var(--red);}
+  .search-box{margin-left:auto;display:flex;align-items:center;gap:6px;
+    background:#fff;border:1.5px solid var(--line);border-radius:22px;padding:5px 14px;}
+  .search-box:focus-within{border-color:var(--blue);}
+  .search-box input{border:0;outline:0;font-family:inherit;font-size:.88rem;
+    width:180px;background:transparent;}
+  .search-box .ic{color:var(--grey);font-size:1rem;}
+
+  /* ===== 相簿牆 ===== */
+  main{max-width:1180px;margin:0 auto;padding:26px 22px 50px;}
+  .result-line{font-size:.86rem;color:var(--grey);margin-bottom:16px;}
+  .result-line b{color:var(--blue);}
+  .grid{display:grid;gap:22px;
+    grid-template-columns:repeat(auto-fill,minmax(258px,1fr));}
+  .card{border:1px solid var(--line);border-radius:var(--card-radius);
+    overflow:hidden;cursor:pointer;background:#fff;transition:.18s;}
+  .card:hover{box-shadow:0 8px 22px rgba(6,50,149,.15);transform:translateY(-3px);}
+  .cover{height:172px;position:relative;background-size:contain;
+    background-repeat:no-repeat;background-position:center;background-color:#eef1f9;}
+  .card-body{padding:13px 15px 16px;}
+  .card-title{font-size:1.04rem;font-weight:800;line-height:1.45;}
+  .card-meta{display:flex;align-items:center;gap:9px;margin-top:8px;
+    font-size:.8rem;color:var(--grey);flex-wrap:wrap;}
+  .tag{font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:5px;color:#fff;}
+  .tag.教務{background:var(--blue);}
+  .tag.學務{background:var(--red);}
+  .tag.總務{background:var(--green);}
+  .tag.輔導{background:#9a6a00;}
+  .tag.其他{background:var(--grey);}
+
+  /* ===== 相簿內頁 ===== */
+  .album-view{display:none;}
+  .back-btn{display:inline-flex;align-items:center;gap:6px;
+    color:var(--blue);font-weight:700;font-size:.9rem;cursor:pointer;
+    border:0;background:none;font-family:inherit;padding:4px 0;margin-bottom:14px;}
+  .album-head{border-bottom:2px solid var(--line);padding-bottom:16px;margin-bottom:20px;}
+  .album-head h2{font-size:1.5rem;color:var(--blue);}
+  .album-head .sub{color:var(--grey);font-size:.88rem;margin-top:6px;}
+  .album-head .desc{margin-top:12px;font-size:.95rem;max-width:760px;}
+  .album-actions{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;}
+  .btn{font-family:inherit;font-size:.86rem;font-weight:700;cursor:pointer;
+    padding:8px 18px;border-radius:8px;border:1.5px solid var(--blue);}
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-ghost{background:#fff;color:var(--blue);}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .photo-grid{display:grid;gap:10px;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));}
+  .photo{height:130px;border-radius:8px;position:relative;cursor:pointer;
+    background-size:cover;background-position:center;transition:.15s;}
+  .photo:hover{transform:scale(1.03);box-shadow:0 4px 12px rgba(0,0,0,.2);}
+  .photo .wm{position:absolute;right:6px;bottom:5px;color:rgba(255,255,255,.78);
+    font-size:.62rem;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.5);}
+  .empty-photos{background:var(--blue-soft);border:1px dashed #b9c2dd;border-radius:10px;
+    padding:30px;text-align:center;color:var(--grey);font-size:.9rem;}
+  .note{background:#fff8e1;border:1px solid var(--yellow);border-radius:8px;
+    padding:10px 14px;font-size:.8rem;color:#7a5b00;margin-top:18px;}
+  .loading{padding:40px;text-align:center;color:var(--grey);}
+
+  /* ===== 燈箱（放大檢視）===== */
+  .lightbox{display:none;position:fixed;inset:0;background:rgba(6,12,30,.93);
+    z-index:60;flex-direction:column;}
+  .lightbox.show{display:flex;}
+  .lb-top{display:flex;align-items:center;gap:12px;padding:14px 18px;color:#fff;}
+  .lb-count{font-size:.9rem;opacity:.85;}
+  .lb-top .sp{margin-left:auto;}
+  .lb-btn{background:rgba(255,255,255,.14);color:#fff;
+    border:1px solid rgba(255,255,255,.35);border-radius:8px;
+    padding:8px 16px;font-size:.86rem;font-weight:700;}
+  .lb-btn.dl{background:var(--yellow);color:#5a4400;border-color:var(--yellow);}
+  .lb-close{background:none;border:0;color:#fff;font-size:1.6rem;line-height:1;padding:0 6px;}
+  .lb-stage{flex:1;display:flex;align-items:center;justify-content:center;
+    padding:0 10px 18px;min-height:0;}
+  .lb-stage img{max-width:100%;max-height:100%;border-radius:6px;
+    box-shadow:0 8px 30px rgba(0,0,0,.5);}
+  .lb-nav{background:rgba(255,255,255,.14);border:0;color:#fff;
+    font-size:1.8rem;width:48px;height:48px;border-radius:50%;flex-shrink:0;}
+  .lb-nav:hover{background:rgba(255,255,255,.28);}
+
+  /* ===== 進度視窗 ===== */
+  .progress{display:none;position:fixed;inset:0;background:rgba(8,16,40,.55);
+    z-index:70;align-items:center;justify-content:center;}
+  .progress.show{display:flex;}
+  .progress .card2{background:#fff;border-radius:14px;padding:24px;
+    width:90%;max-width:340px;text-align:center;}
+  .progress .msg{font-weight:700;color:var(--blue);margin-bottom:14px;}
+  .bar{height:10px;background:var(--blue-soft);border-radius:6px;overflow:hidden;}
+  .bar > div{height:100%;background:var(--blue);width:0;transition:.2s;}
+
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:11px 22px;border-radius:24px;
+    font-size:.88rem;z-index:90;opacity:0;transition:.25s;pointer-events:none;max-width:90%;}
+  .toast.show{opacity:1;}
+
+  /* ===== 頁尾 ===== */
+  footer{background:var(--blue-dark);color:rgba(255,255,255,.82);margin-top:30px;}
+  .footer-in{max-width:1180px;margin:0 auto;padding:22px;font-size:.82rem;}
+  .footer-in strong{color:#fff;font-size:.95rem;}
+  .footer-in .row{margin-top:6px;}
+
+  .src-flag{text-align:center;font-size:.78rem;font-weight:700;padding:5px;}
+  .src-flag.api{background:var(--green);color:#fff;}
+  .src-flag.mock{background:var(--yellow);color:#5a4400;}
+
+  @media(max-width:560px){
+    .site-name{font-size:1.15rem;}
+    .topbar .official{display:none;}
+    .search-box{margin-left:0;width:100%;}
+    .search-box input{width:100%;}
+    .hero h1{font-size:1.3rem;}
+    .lb-nav{width:40px;height:40px;font-size:1.4rem;}
+  }
+</style>
+</head>
+<body>
+
+<div class="src-flag mock" id="srcFlag">資料載入中…</div>
+
+<header>
+  <div class="topbar">
+    <div class="crest"><img src="logo.png" alt="內湖國小校徽"></div>
+    <div>
+      <div class="site-name">校園活動相簿</div>
+      <div class="site-sub">鄉土情　世界觀</div>
+    </div>
+    <span class="official">新竹市內湖國小　官方網站</span>
+  </div>
+</header>
+
+<nav class="breadcrumb">
+  <div><a href="#">內湖國小首頁</a><span class="sep">›</span>校園活動相簿</div>
+</nav>
+
+<section class="hero">
+  <div class="hero-in">
+    <h1>記錄孩子在內湖的每一天<span class="dot">.</span></h1>
+    <p>運動場上的奔跑、教室裡的專注、戶外教育的笑聲——歡迎家長走進孩子的校園時光。</p>
+  </div>
+</section>
+
+<div class="toolbar">
+  <div class="toolbar-in">
+    <div class="filter-group">
+      <span class="filter-label">學年度</span>
+      <span id="yearPills"><button class="pill year active" data-year="all">全部</button></span>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">處室</span>
+      <button class="pill dept active" data-dept="all">全部</button>
+      <button class="pill dept" data-dept="教務">教務處</button>
+      <button class="pill dept" data-dept="學務">學務處</button>
+      <button class="pill dept" data-dept="總務">總務處</button>
+      <button class="pill dept" data-dept="輔導">輔導室</button>
+    </div>
+    <div class="search-box">
+      <span class="ic">🔍</span>
+      <input type="text" id="search" placeholder="搜尋活動，如：運動會、戶外">
+    </div>
+  </div>
+</div>
+
+<main>
+  <div class="wall-view" id="wallView">
+    <div class="result-line">共 <b id="count">0</b> 本相簿</div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="album-view" id="albumView">
+    <button class="back-btn" onclick="showWall()">‹ 返回相簿牆</button>
+    <div class="album-head">
+      <h2 id="aTitle"></h2>
+      <div class="sub" id="aSub"></div>
+      <div class="desc" id="aDesc"></div>
+      <div class="album-actions">
+        <button class="btn btn-primary" id="dlAlbumBtn" onclick="downloadAlbum()">⬇ 下載整本相簿</button>
+        <button class="btn btn-ghost" onclick="shareLink()">分享連結</button>
+      </div>
+    </div>
+    <div id="photoArea"></div>
+    <div class="note">提醒：下載之照片均含「內湖國小」浮水印；本相簿照片以家長影像同意範圍為限。</div>
+  </div>
+</main>
+
+<!-- 燈箱 -->
+<div class="lightbox" id="lightbox">
+  <div class="lb-top">
+    <span class="lb-count" id="lbCount"></span>
+    <span class="sp"></span>
+    <button class="lb-btn dl" onclick="downloadCurrent()">⬇ 下載這張</button>
+    <button class="lb-close" onclick="closeLightbox()">✕</button>
+  </div>
+  <div class="lb-stage">
+    <button class="lb-nav" onclick="lbStep(-1)">‹</button>
+    <img id="lbImg" alt="">
+    <button class="lb-nav" onclick="lbStep(1)">›</button>
+  </div>
+</div>
+
+<!-- 進度視窗 -->
+<div class="progress" id="progress">
+  <div class="card2">
+    <div class="msg" id="progMsg">處理中…</div>
+    <div class="bar"><div id="progBar"></div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  <div class="footer-in">
+    <strong>新竹市內湖國民小學</strong>
+    <div class="row">300 新竹市香山區內湖路109號　|　電話 03-5373184　|　傳真 03-5371576</div>
+    <div class="row" style="opacity:.6;margin-top:10px;">© 內湖國小 校園活動相簿系統</div>
+  </div>
+</footer>
+
+<script>
+/* ===== 後端 API ===== */
+const API_BASE = 'https://script.google.com/macros/s/AKfycbxTpwYdoPYSUGPG_sh5LXvoWJkrtOWVBSmFaW3oFPrO3_9cG1Wj17wrnqwwnBnd_Csi/exec';
+
+const MOCK_ALBUMS = [
+  {albumId:'M1',title:'114學年度校慶運動會',eventDate:'2026/03/14',schoolYear:'114',dept:'學務',tags:['運動會'],coverUrl:''},
+  {albumId:'M2',title:'春季戶外教育 ‧ 香山濕地',eventDate:'2026/04/18',schoolYear:'114',dept:'教務',tags:['戶外教育'],coverUrl:''},
+  {albumId:'M3',title:'圖書館閱讀闖關月',eventDate:'2025/04/22',schoolYear:'113',dept:'教務',tags:['閱讀'],coverUrl:''}
+];
+const COVERS=[['#063295','#0a44b8'],['#357f44','#5aa86b'],['#d92d24','#e8623a'],
+  ['#1d5fae','#2a8fd0'],['#7a5b00','#e8b517'],['#2f6b8f','#4aa3b8']];
+function coverBg(seed){
+  const c=COVERS[Math.abs(hash_(seed))%COVERS.length];
+  return `background-image:linear-gradient(135deg,${c[0]},${c[1]});`;
+}
+function hash_(s){let h=0;s=String(s);for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return h;}
+
+let ALBUMS=[], SOURCE='mock';
+let fYear='all', fDept='all', fKey='';
+let currentPhotos=[], currentAlbumTitle='', lbIndex=0;
+
+/* ===== 載入相簿牆 ===== */
+async function loadAlbums(){
+  try{
+    const r=await fetch(API_BASE+'?action=albums');
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.error||'API 回傳失敗');
+    ALBUMS=j.data; SOURCE='api';
+  }catch(e){
+    ALBUMS=MOCK_ALBUMS; SOURCE='mock';
+    console.warn('改用示意資料：',e);
+  }
+  const flag=document.getElementById('srcFlag');
+  if(SOURCE==='api'){
+    flag.className='src-flag api';
+    flag.textContent='● 已連線後端 ‧ 顯示資料庫的真實相簿';
+  }else{
+    flag.className='src-flag mock';
+    flag.textContent='⚠ 未連上後端，目前顯示示意資料（請用無痕視窗或部署到 GitHub Pages 後再看）';
+  }
+  buildYearPills();
+  render();
+}
+
+function buildYearPills(){
+  const years=[...new Set(ALBUMS.map(a=>a.schoolYear))].sort().reverse();
+  const box=document.getElementById('yearPills');
+  box.innerHTML='<button class="pill year active" data-year="all">全部</button>'+
+    years.map(y=>`<button class="pill year" data-year="${y}">${y}</button>`).join('');
+  box.querySelectorAll('.pill.year').forEach(p=>p.onclick=()=>{
+    box.querySelectorAll('.pill.year').forEach(x=>x.classList.remove('active'));
+    p.classList.add('active');fYear=p.dataset.year;render();
+  });
+}
+
+/* ===== 繪製相簿牆 ===== */
+function render(){
+  const grid=document.getElementById('grid');
+  const list=ALBUMS.filter(a=>
+    (fYear==='all'||a.schoolYear===fYear)&&
+    (fDept==='all'||a.dept===fDept)&&
+    (fKey===''||a.title.includes(fKey)||(a.tags||[]).some(t=>t.includes(fKey)))
+  );
+  document.getElementById('count').textContent=list.length;
+  grid.innerHTML=list.map(a=>{
+    const cover=a.coverUrl
+      ? `background-image:url('${a.coverUrl}');`
+      : coverBg(a.albumId+a.title);
+    return `<div class="card" onclick="openAlbum('${a.albumId}')">
+      <div class="cover" style="${cover}"></div>
+      <div class="card-body">
+        <div class="card-title">${a.title}</div>
+        <div class="card-meta">
+          <span class="tag ${a.dept||'其他'}">${a.dept||'其他'}</span>
+          <span>${a.eventDate}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('')||'<p style="color:var(--grey)">找不到符合條件的相簿。</p>';
+}
+
+/* ===== 開啟單一相簿 ===== */
+async function openAlbum(id){
+  document.getElementById('wallView').style.display='none';
+  document.getElementById('albumView').style.display='block';
+  window.scrollTo(0,0);
+  document.getElementById('aTitle').textContent='載入中…';
+  document.getElementById('aSub').textContent='';
+  document.getElementById('aDesc').textContent='';
+  document.getElementById('photoArea').innerHTML='<div class="loading">相簿載入中…</div>';
+  currentPhotos=[];
+
+  let album=null;
+  if(SOURCE==='api'){
+    try{
+      const r=await fetch(API_BASE+'?action=album&id='+encodeURIComponent(id));
+      const j=await r.json();
+      if(j.ok) album=j.data;
+    }catch(e){console.warn(e);}
+  }
+  if(!album){
+    const m=ALBUMS.find(a=>a.albumId===id)||{};
+    album={title:m.title||'相簿',eventDate:m.eventDate||'',schoolYear:m.schoolYear||'',
+      dept:m.dept||'',description:'（此為示意資料，未連上後端）',photos:[]};
+  }
+
+  currentAlbumTitle=album.title;
+  document.getElementById('aTitle').textContent=album.title;
+  document.getElementById('aSub').textContent=
+    [album.schoolYear&&album.schoolYear+'學年度',album.dept&&album.dept+'處室',
+     album.eventDate].filter(Boolean).join(' ‧ ');
+  document.getElementById('aDesc').textContent=album.description||'';
+
+  const area=document.getElementById('photoArea');
+  const dlBtn=document.getElementById('dlAlbumBtn');
+  if(album.photos&&album.photos.length){
+    currentPhotos=album.photos;
+    area.innerHTML='<div class="photo-grid">'+album.photos.map((p,i)=>
+      `<div class="photo" style="background-image:url('${p.thumb}')" onclick="openLightbox(${i})"></div>`).join('')+'</div>';
+    dlBtn.disabled=false;
+  }else{
+    area.innerHTML='<div class="empty-photos">這本相簿尚未上傳照片。<br>'+
+      '照片將於後台管理介面完成、承辦人上傳後顯示。</div>';
+    dlBtn.disabled=true;
+  }
+}
+function showWall(){
+  document.getElementById('albumView').style.display='none';
+  document.getElementById('wallView').style.display='block';
+}
+
+/* ===== 燈箱（放大檢視）===== */
+function openLightbox(i){
+  lbIndex=i;
+  document.getElementById('lbImg').src=hiResUrl(currentPhotos[i]);
+  document.getElementById('lbCount').textContent=(i+1)+' / '+currentPhotos.length;
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('show'); }
+function lbStep(d){
+  lbIndex=(lbIndex+d+currentPhotos.length)%currentPhotos.length;
+  openLightbox(lbIndex);
+}
+document.addEventListener('keydown',function(e){
+  if(!document.getElementById('lightbox').classList.contains('show')) return;
+  if(e.key==='Escape') closeLightbox();
+  if(e.key==='ArrowLeft') lbStep(-1);
+  if(e.key==='ArrowRight') lbStep(1);
+});
+
+/* 高解析（但仍適度縮小）的圖片網址，用 lh3 取得，較好處理浮水印 */
+function hiResUrl(photo){
+  return 'https://lh3.googleusercontent.com/d/'+photo.id+'=w1600';
+}
+
+/* ===== 浮水印 ===== */
+function loadImage(url){
+  return new Promise(function(resolve,reject){
+    const img=new Image();
+    img.crossOrigin='anonymous';
+    img.onload=function(){ resolve(img); };
+    img.onerror=function(){ reject(new Error('圖片載入失敗')); };
+    img.src=url;
+  });
+}
+function watermark(img){
+  const c=document.createElement('canvas');
+  c.width=img.naturalWidth||img.width;
+  c.height=img.naturalHeight||img.height;
+  const ctx=c.getContext('2d');
+  ctx.drawImage(img,0,0,c.width,c.height);
+
+  // 淡淡的：右下角一行半透明白字，配細微陰影，淺色深色背景都看得出
+  const text='內湖國小';
+  const fs=Math.max(16,Math.round(c.width/42));
+  ctx.font='bold '+fs+'px "Microsoft JhengHei",sans-serif';
+  ctx.textBaseline='alphabetic';
+  const m=Math.round(fs*0.95);
+  const x=c.width-ctx.measureText(text).width-m;
+  const y=c.height-m;
+
+  ctx.shadowColor='rgba(0,0,0,0.45)';
+  ctx.shadowBlur=Math.round(fs*0.3);
+  ctx.shadowOffsetX=1;
+  ctx.shadowOffsetY=1;
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  ctx.fillText(text,x,y);
+  return c;
+}
+function canvasToBlob(c){
+  return new Promise(function(resolve,reject){
+    c.toBlob(function(b){ b?resolve(b):reject(new Error('輸出失敗')); },'image/jpeg',0.9);
+  });
+}
+function triggerDownload(blob,name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); },1500);
+}
+function pad2(n){ return ('0'+n).slice(-2); }
+function safeName(s){ return String(s).replace(/[\\/:*?"<>|]/g,'_'); }
+
+/* ===== 下載單張（燈箱）===== */
+async function downloadCurrent(){
+  const p=currentPhotos[lbIndex];
+  toast('處理中…');
+  try{
+    const img=await loadImage(hiResUrl(p));
+    const blob=await canvasToBlob(watermark(img));
+    triggerDownload(blob,
+      '內湖國小_'+safeName(currentAlbumTitle)+'_'+pad2(lbIndex+1)+'.jpg');
+    toast('已下載');
+  }catch(e){
+    console.warn(e);
+    toast('這張照片下載失敗，可能是瀏覽器安全限制（待 Cloudflare 上線可解決）。');
+  }
+}
+
+/* ===== 下載整本相簿（打包 zip）===== */
+async function downloadAlbum(){
+  if(!currentPhotos.length) return;
+  if(typeof JSZip==='undefined'){ toast('打包元件尚未載入，請稍候再試。'); return; }
+  showProgress('準備下載…',0);
+  const zip=new JSZip();
+  let ok=0;
+  for(let i=0;i<currentPhotos.length;i++){
+    showProgress('處理第 '+(i+1)+' / '+currentPhotos.length+' 張…',
+      Math.round(i/currentPhotos.length*92));
+    try{
+      const img=await loadImage(hiResUrl(currentPhotos[i]));
+      const blob=await canvasToBlob(watermark(img));
+      zip.file(pad2(i+1)+'.jpg',blob);
+      ok++;
+    }catch(e){ console.warn('第'+(i+1)+'張失敗',e); }
+  }
+  if(ok===0){
+    hideProgress();
+    toast('整本下載失敗，可能是瀏覽器安全限制（待 Cloudflare 上線可解決）。');
+    return;
+  }
+  showProgress('打包中…',96);
+  const out=await zip.generateAsync({type:'blob'});
+  triggerDownload(out,'內湖國小_'+safeName(currentAlbumTitle)+'_相簿.zip');
+  hideProgress();
+  toast(ok+' 張照片已打包下載');
+}
+
+function showProgress(msg,pct){
+  document.getElementById('progMsg').textContent=msg;
+  document.getElementById('progBar').style.width=pct+'%';
+  document.getElementById('progress').classList.add('show');
+}
+function hideProgress(){ document.getElementById('progress').classList.remove('show'); }
+
+/* ===== 分享連結 ===== */
+function shareLink(){
+  const url=location.href;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(function(){ toast('連結已複製'); });
+  }else{ toast('請手動複製網址列的連結'); }
+}
+
+/* ===== 提示 ===== */
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){ t.classList.remove('show'); },2800);
+}
+
+/* 處室篩選 */
+document.querySelectorAll('.pill.dept').forEach(p=>p.onclick=()=>{
+  document.querySelectorAll('.pill.dept').forEach(x=>x.classList.remove('active'));
+  p.classList.add('active');fDept=p.dataset.dept;render();
+});
+document.getElementById('search').oninput=e=>{fKey=e.target.value.trim();render();};
+
+loadAlbums();
+</script>
+</body>
+</html>
