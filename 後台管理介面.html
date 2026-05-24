@@ -219,6 +219,7 @@
   <div class="modal" id="modal"></div>
 </div>
 <div class="toast" id="toast"></div>
+<input type="file" id="photoInput" accept="image/*" multiple style="display:none">
 
 <script>
 /* ============================================================
@@ -313,9 +314,10 @@ function renderAlbums(list){
         '<span class="badge '+a.status+'">'+a.status+'</span>'+
       '</div>'+
       '<div class="album-actions">'+
-        '<button class="btn btn-sm btn-line" onclick="openForm(\''+a.albumId+'\')">✏ 編輯資料</button>'+
-        '<button class="btn btn-sm btn-grey" onclick="openFolder(\''+a.albumId+'\')">📂 上傳照片</button>'+
+        '<button class="btn btn-sm btn-line" onclick="startUpload(\''+a.albumId+'\')">⬆ 上傳照片</button>'+
         '<button class="btn btn-sm btn-grey" onclick="openCover(\''+a.albumId+'\')">🖼 選封面</button>'+
+        '<button class="btn btn-sm btn-grey" onclick="openForm(\''+a.albumId+'\')">✏ 編輯資料</button>'+
+        '<button class="btn btn-sm btn-grey" onclick="openFolder(\''+a.albumId+'\')">📂 改用 Drive 上傳</button>'+
         (a.status==='已發布'
           ? '<button class="btn btn-sm btn-grey" onclick="askUnpublish(\''+a.albumId+'\')">收回（轉草稿）</button>'
           : '<button class="btn btn-sm btn-green" onclick="askPublish(\''+a.albumId+'\')">✓ 發布</button>')+
@@ -378,11 +380,90 @@ function showCreated(folderUrl){
     [{label:'完成',cls:'btn-primary',fn:closeModal}]);
 }
 
-/* ----- 開啟 Drive 資料夾 ----- */
+/* ----- 改用 Drive 資料夾上傳（電腦端大量上傳適用）----- */
 function openFolder(albumId){
   const a=findAlbum(albumId);
   if(a&&a.folderUrl) window.open(a.folderUrl,'_blank');
   else toast('找不到資料夾連結');
+}
+
+/* ----- 頁內上傳照片（手機適用）----- */
+let uploadAlbumId='';
+function startUpload(albumId){
+  uploadAlbumId=albumId;
+  const inp=document.getElementById('photoInput');
+  inp.value='';          // 清掉上次的選擇
+  inp.click();           // 叫出手機相簿／相機
+}
+document.getElementById('photoInput').onchange=async function(e){
+  const files=Array.from(e.target.files||[]);
+  if(!files.length) return;
+  let ok=0, fail=0;
+  showUploadProgress(0,files.length);
+  for(let i=0;i<files.length;i++){
+    showUploadProgress(i,files.length);
+    try{
+      const blob=await resizePhoto(files[i],1920);
+      const data=await blobToBase64(blob);
+      const res=await api('uploadPhoto',{
+        albumId:uploadAlbumId,
+        fileName:'photo_'+Date.now()+'_'+(i+1)+'.jpg',
+        mimeType:'image/jpeg',
+        data:data
+      });
+      if(res.ok) ok++; else { fail++; console.warn(res.error); }
+    }catch(err){ fail++; console.warn(err); }
+  }
+  closeModal();
+  toast('上傳完成：成功 '+ok+' 張'+(fail?'，失敗 '+fail+' 張，請再試一次':''));
+};
+
+/* 在手機端把照片縮圖、轉成 JPEG —— 加快上傳、統一格式（含 iPhone HEIC）*/
+function resizePhoto(file,maxSide){
+  return new Promise(function(resolve,reject){
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=function(){
+      URL.revokeObjectURL(url);
+      let w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+      const scale=Math.min(1,maxSide/Math.max(w,h));
+      w=Math.round(w*scale); h=Math.round(h*scale);
+      const c=document.createElement('canvas');
+      c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      c.toBlob(function(b){ b?resolve(b):reject(new Error('影像處理失敗')); },
+        'image/jpeg',0.85);
+    };
+    img.onerror=function(){ URL.revokeObjectURL(url); reject(new Error('無法讀取照片')); };
+    img.src=url;
+  });
+}
+function blobToBase64(blob){
+  return new Promise(function(resolve,reject){
+    const r=new FileReader();
+    r.onload=function(){
+      const s=String(r.result);
+      resolve(s.substring(s.indexOf(',')+1));   // 去掉 data:...;base64, 前綴
+    };
+    r.onerror=function(){ reject(new Error('編碼失敗')); };
+    r.readAsDataURL(blob);
+  });
+}
+function showUploadProgress(done,total){
+  const pct=total?Math.round(done/total*100):0;
+  const html='<div style="text-align:center;padding:6px 0">'+
+    '<div style="font-weight:700;color:var(--blue);margin-bottom:12px">'+
+      '照片上傳中…　'+done+' / '+total+'</div>'+
+    '<div style="height:12px;background:var(--blue-soft);border-radius:6px;overflow:hidden">'+
+      '<div style="height:100%;background:var(--blue);width:'+pct+'%;transition:.2s"></div>'+
+    '</div>'+
+    '<div class="page-hint" style="margin-top:10px">請保持本頁開啟，直到完成。</div>'+
+  '</div>';
+  if(document.getElementById('overlay').classList.contains('show')){
+    setModalBody(html);
+  }else{
+    showModal('上傳照片',html,[]);
+  }
 }
 
 /* ----- 選封面 ----- */
