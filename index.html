@@ -156,9 +156,13 @@
   .footer-in strong{color:#fff;font-size:.95rem;}
   .footer-in .row{margin-top:6px;}
 
-  .src-flag{text-align:center;font-size:.78rem;font-weight:700;padding:5px;}
-  .src-flag.api{background:var(--green);color:#fff;}
-  .src-flag.mock{background:var(--yellow);color:#5a4400;}
+  .wall-msg{grid-column:1/-1;text-align:center;color:var(--grey);padding:54px 20px;}
+  .spinner{width:34px;height:34px;margin:0 auto 14px;border-radius:50%;
+    border:3px solid var(--blue-soft);border-top-color:var(--blue);
+    animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .retry-btn{margin-top:14px;background:var(--blue);color:#fff;border:0;
+    border-radius:8px;padding:9px 20px;font-size:.88rem;font-weight:700;cursor:pointer;}
 
   @media(max-width:560px){
     .site-name{font-size:1.15rem;}
@@ -171,8 +175,6 @@
 </style>
 </head>
 <body>
-
-<div class="src-flag mock" id="srcFlag">資料載入中…</div>
 
 <header>
   <div class="topbar">
@@ -276,11 +278,6 @@
 /* ===== 後端 API ===== */
 const API_BASE = 'https://script.google.com/macros/s/AKfycbxTpwYdoPYSUGPG_sh5LXvoWJkrtOWVBSmFaW3oFPrO3_9cG1Wj17wrnqwwnBnd_Csi/exec';
 
-const MOCK_ALBUMS = [
-  {albumId:'M1',title:'114學年度校慶運動會',eventDate:'2026/03/14',schoolYear:'114',dept:'學務',tags:['運動會'],coverUrl:''},
-  {albumId:'M2',title:'春季戶外教育 ‧ 香山濕地',eventDate:'2026/04/18',schoolYear:'114',dept:'教務',tags:['戶外教育'],coverUrl:''},
-  {albumId:'M3',title:'圖書館閱讀闖關月',eventDate:'2025/04/22',schoolYear:'113',dept:'教務',tags:['閱讀'],coverUrl:''}
-];
 const COVERS=[['#063295','#0a44b8'],['#357f44','#5aa86b'],['#d92d24','#e8623a'],
   ['#1d5fae','#2a8fd0'],['#7a5b00','#e8b517'],['#2f6b8f','#4aa3b8']];
 function coverBg(seed){
@@ -289,31 +286,45 @@ function coverBg(seed){
 }
 function hash_(s){let h=0;s=String(s);for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return h;}
 
-let ALBUMS=[], SOURCE='mock';
+const CACHE_KEY='nhps_albums_v1';
+let ALBUMS=[];
 let fYear='all', fDept='all', fKey='';
 let currentPhotos=[], currentAlbumTitle='', lbIndex=0;
 
-/* ===== 載入相簿牆 ===== */
+/* ===== 載入相簿牆：先用快取即時顯示，再背景向後端更新 ===== */
 async function loadAlbums(){
+  const cached=readCache();
+  if(cached&&cached.length){
+    ALBUMS=cached; buildYearPills(); render();
+  }else{
+    document.getElementById('count').textContent='…';
+    document.getElementById('grid').innerHTML=
+      '<div class="wall-msg"><div class="spinner"></div>相簿載入中…</div>';
+  }
   try{
     const r=await fetch(API_BASE+'?action=albums');
     const j=await r.json();
     if(!j.ok) throw new Error(j.error||'API 回傳失敗');
-    ALBUMS=j.data; SOURCE='api';
+    ALBUMS=j.data;
+    writeCache(ALBUMS);
+    buildYearPills(); render();
   }catch(e){
-    ALBUMS=MOCK_ALBUMS; SOURCE='mock';
-    console.warn('改用示意資料：',e);
+    console.warn('載入失敗：',e);
+    if(!cached||!cached.length){
+      document.getElementById('count').textContent='0';
+      document.getElementById('grid').innerHTML=
+        '<div class="wall-msg">相簿暫時無法載入，請檢查網路後再試。<br>'+
+        '<button class="retry-btn" onclick="loadAlbums()">重新整理</button></div>';
+    }
   }
-  const flag=document.getElementById('srcFlag');
-  if(SOURCE==='api'){
-    flag.className='src-flag api';
-    flag.textContent='● 已連線後端 ‧ 顯示資料庫的真實相簿';
-  }else{
-    flag.className='src-flag mock';
-    flag.textContent='⚠ 未連上後端，目前顯示示意資料（請用無痕視窗或部署到 GitHub Pages 後再看）';
-  }
-  buildYearPills();
-  render();
+}
+/* 瀏覽器端快取，讓再次造訪能即時顯示 */
+function readCache(){
+  try{ return JSON.parse(localStorage.getItem(CACHE_KEY)||'null'); }
+  catch(e){ return null; }
+}
+function writeCache(data){
+  try{ localStorage.setItem(CACHE_KEY,JSON.stringify(data)); }catch(e){}
 }
 
 function buildYearPills(){
@@ -361,21 +372,23 @@ async function openAlbum(id){
   document.getElementById('aTitle').textContent='載入中…';
   document.getElementById('aSub').textContent='';
   document.getElementById('aDesc').textContent='';
-  document.getElementById('photoArea').innerHTML='<div class="loading">相簿載入中…</div>';
+  document.getElementById('photoArea').innerHTML=
+    '<div class="loading"><div class="spinner"></div>相簿載入中…</div>';
+  document.getElementById('dlAlbumBtn').disabled=true;
   currentPhotos=[];
 
   let album=null;
-  if(SOURCE==='api'){
-    try{
-      const r=await fetch(API_BASE+'?action=album&id='+encodeURIComponent(id));
-      const j=await r.json();
-      if(j.ok) album=j.data;
-    }catch(e){console.warn(e);}
-  }
+  try{
+    const r=await fetch(API_BASE+'?action=album&id='+encodeURIComponent(id));
+    const j=await r.json();
+    if(j.ok) album=j.data;
+  }catch(e){ console.warn(e); }
+
   if(!album){
-    const m=ALBUMS.find(a=>a.albumId===id)||{};
-    album={title:m.title||'相簿',eventDate:m.eventDate||'',schoolYear:m.schoolYear||'',
-      dept:m.dept||'',description:'（此為示意資料，未連上後端）',photos:[]};
+    document.getElementById('aTitle').textContent='相簿載入失敗';
+    document.getElementById('photoArea').innerHTML=
+      '<div class="empty-photos">相簿暫時無法載入，請稍後再重新整理。</div>';
+    return;
   }
 
   currentAlbumTitle=album.title;
