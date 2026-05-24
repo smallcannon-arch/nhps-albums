@@ -8,10 +8,11 @@
 <style>
   /* ===== 色票：取自內湖國小校徽 ===== */
   :root{
-    --blue:#063295; --blue-dark:#04246b; --blue-soft:#eef1f9;
-    --red:#d92d24; --green:#357f44; --yellow:#e8b517;
-    --ink:#23262e; --grey:#6b7280; --line:#e4e6ec;
-    --card-radius:14px;
+    /* 馬卡龍色系（由校徽色柔化而來）*/
+    --blue:#5f77b8; --blue-dark:#4e639c; --blue-soft:#eef0f9;
+    --red:#cf7e8b; --green:#7cbd9c; --yellow:#ead08a;
+    --ink:#474d5b; --grey:#838795; --line:#eae6df;
+    --card-radius:16px;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   body{
@@ -39,7 +40,7 @@
   .breadcrumb .sep{margin:0 7px;opacity:.5;}
 
   /* ===== 主視覺帶 ===== */
-  .hero{background:linear-gradient(105deg,var(--blue) 0%,#0a44b8 100%);color:#fff;}
+  .hero{background:linear-gradient(105deg,#5f77b8 0%,#8094c8 100%);color:#fff;}
   .hero-in{max-width:1180px;margin:0 auto;padding:30px 22px 34px;}
   .hero h1{font-size:1.7rem;font-weight:800;}
   .hero h1 .dot{color:var(--yellow);}
@@ -57,7 +58,7 @@
     font-family:inherit;transition:.15s;}
   .pill:hover{border-color:var(--blue);}
   .pill.active{background:var(--blue);color:#fff;border-color:var(--blue);}
-  .pill.year.active{background:var(--red);border-color:var(--red);}
+  .pill.year.active{background:var(--blue);border-color:var(--blue);}
   .search-box{margin-left:auto;display:flex;align-items:center;gap:6px;
     background:#fff;border:1.5px solid var(--line);border-radius:22px;padding:5px 14px;}
   .search-box:focus-within{border-color:var(--blue);}
@@ -80,12 +81,12 @@
   .card-title{font-size:1.04rem;font-weight:800;line-height:1.45;}
   .card-meta{display:flex;align-items:center;gap:9px;margin-top:8px;
     font-size:.8rem;color:var(--grey);flex-wrap:wrap;}
-  .tag{font-size:.74rem;font-weight:700;padding:2px 9px;border-radius:5px;color:#fff;}
-  .tag.教務{background:var(--blue);}
-  .tag.學務{background:var(--red);}
-  .tag.總務{background:var(--green);}
-  .tag.輔導{background:#9a6a00;}
-  .tag.其他{background:var(--grey);}
+  .tag{font-size:.74rem;font-weight:700;padding:3px 10px;border-radius:6px;color:#41454f;}
+  .tag.教務{background:#d3dcf3;}
+  .tag.學務{background:#f3d2d7;}
+  .tag.總務{background:#cfe9da;}
+  .tag.輔導{background:#ddd5ef;}
+  .tag.其他{background:#e7e3da;}
 
   /* ===== 相簿內頁 ===== */
   .album-view{display:none;}
@@ -270,7 +271,7 @@
   <div class="footer-in">
     <strong>新竹市內湖國民小學</strong>
     <div class="row">300 新竹市香山區內湖路109號　|　電話 03-5373184　|　傳真 03-5371576</div>
-    <div class="row" style="opacity:.6;margin-top:10px;">© 內湖國小 校園活動相簿系統</div>
+    <div class="row" style="margin-top:10px;color:rgba(255,255,255,.55);">© 內湖國小 校園活動相簿系統　‧　<a href="後台管理介面.html" style="color:rgba(255,255,255,.85);text-decoration:underline">教職員登入</a></div>
   </div>
 </footer>
 
@@ -278,8 +279,8 @@
 /* ===== 後端 API（GAS Web App）===== */
 const API_BASE = 'https://script.google.com/macros/s/AKfycbxTpwYdoPYSUGPG_sh5LXvoWJkrtOWVBSmFaW3oFPrO3_9cG1Wj17wrnqwwnBnd_Csi/exec';
 
-const COVERS=[['#063295','#0a44b8'],['#357f44','#5aa86b'],['#d92d24','#e8623a'],
-  ['#1d5fae','#2a8fd0'],['#7a5b00','#e8b517'],['#2f6b8f','#4aa3b8']];
+const COVERS=[['#9fb0d8','#bcc8e6'],['#9ecdb5','#bfe0cf'],['#e8b3bb','#f2cdd2'],
+  ['#c6bce0','#ddd5ef'],['#ecd590','#f4e6b6'],['#a8cdcb','#c7dedd']];
 function coverBg(seed){
   const c=COVERS[Math.abs(hash_(seed))%COVERS.length];
   return `background-image:linear-gradient(135deg,${c[0]},${c[1]});`;
