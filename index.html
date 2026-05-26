@@ -276,8 +276,26 @@
 </footer>
 
 <script>
-/* ===== 後端 API（GAS Web App）===== */
-const API_BASE = 'https://script.google.com/macros/s/AKfycbxTpwYdoPYSUGPG_sh5LXvoWJkrtOWVBSmFaW3oFPrO3_9cG1Wj17wrnqwwnBnd_Csi/exec';
+/* ===== 前台公開讀取 API（Cloudflare Worker）===== */
+const API_MODE = 'worker'; // 'worker' 或 'gas'
+const API_BASE_URL = 'https://nhps-albums.smallcannon.workers.dev';
+const API_BASE = API_BASE_URL;
+
+function apiAction_(type){
+  const map={
+    worker:{list:'getPublishedAlbums',detail:'getAlbumDetail'},
+    gas:{list:'albums',detail:'album'}
+  };
+  return (map[API_MODE]||map.worker)[type];
+}
+function albumListApiUrl_(){
+  return API_BASE+'?action='+encodeURIComponent(apiAction_('list'));
+}
+function albumDetailApiUrl_(id){
+  const idParam=API_MODE==='gas'?'id':'albumId';
+  return API_BASE+'?action='+encodeURIComponent(apiAction_('detail'))+
+    '&'+idParam+'='+encodeURIComponent(id);
+}
 
 const COVERS=[['#9fb0d8','#bcc8e6'],['#9ecdb5','#bfe0cf'],['#e8b3bb','#f2cdd2'],
   ['#c6bce0','#ddd5ef'],['#ecd590','#f4e6b6'],['#a8cdcb','#c7dedd']];
@@ -286,6 +304,13 @@ function coverBg(seed){
   return `background-image:linear-gradient(135deg,${c[0]},${c[1]});`;
 }
 function hash_(s){let h=0;s=String(s);for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return h;}
+function apiError_(j){
+  if(j&&j.error&&typeof j.error==='object') return j.error.message||j.error.code||'API 回傳失敗';
+  return j&&j.error ? String(j.error) : 'API 回傳失敗';
+}
+function escapeHtml_(s){
+  return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
 
 const CACHE_KEY='nhps_albums_v1';
 let ALBUMS=[];
@@ -303,9 +328,9 @@ async function loadAlbums(){
       '<div class="wall-msg"><div class="spinner"></div>相簿載入中…</div>';
   }
   try{
-    const r=await fetch(API_BASE+'?action=albums');
+    const r=await fetch(albumListApiUrl_());
     const j=await r.json();
-    if(!j.ok) throw new Error(j.error||'API 回傳失敗');
+    if(!j.ok) throw new Error(apiError_(j));
     ALBUMS=j.data;
     writeCache(ALBUMS);
     buildYearPills(); render();
@@ -378,17 +403,18 @@ async function openAlbum(id){
   document.getElementById('dlAlbumBtn').disabled=true;
   currentPhotos=[];
 
-  let album=null;
+  let album=null, errMsg='';
   try{
-    const r=await fetch(API_BASE+'?action=album&id='+encodeURIComponent(id));
+    const r=await fetch(albumDetailApiUrl_(id));
     const j=await r.json();
     if(j.ok) album=j.data;
-  }catch(e){ console.warn(e); }
+    else errMsg=apiError_(j);
+  }catch(e){ errMsg=e&&e.message?e.message:''; console.warn(e); }
 
   if(!album){
     document.getElementById('aTitle').textContent='相簿載入失敗';
     document.getElementById('photoArea').innerHTML=
-      '<div class="empty-photos">相簿暫時無法載入，請稍後再重新整理。</div>';
+      '<div class="empty-photos">'+escapeHtml_(errMsg||'相簿暫時無法載入，請稍後再重新整理。')+'</div>';
     return;
   }
 
