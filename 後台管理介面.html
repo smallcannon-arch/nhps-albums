@@ -274,6 +274,15 @@ function api(cmd, extra){
   const payload = Object.assign({ cmd:cmd, idToken:ID_TOKEN }, extra||{});
   return fetch(EXEC_URL, { method:'POST', body:JSON.stringify(payload) })
     .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(j&&j.ok&&Object.prototype.hasOwnProperty.call(j,'data')){
+        return Object.assign({ok:true}, j.data||{});
+      }
+      if(j&&j.ok===false&&j.error&&typeof j.error==='object'){
+        return { ok:false, error:j.error.message||'操作失敗', errorCode:j.error.code };
+      }
+      return j;
+    })
     .catch(function(){ return { ok:false, error:'連線失敗，請檢查網路後再試。' }; });
 }
 
@@ -517,7 +526,7 @@ function askPublish(albumId){
      {label:'確認發布',cls:'btn-green',fn:function(){
         if(!document.getElementById('cAgree').checked){
           toast('請先勾選確認項目'); return; }
-        closeModal(); setStatus(albumId,true);
+        closeModal(); setStatus(albumId,true,true);
      }}]);
 }
 
@@ -534,9 +543,9 @@ function askUnpublish(albumId){
      }}]);
 }
 
-function setStatus(albumId,publish){
+function setStatus(albumId,publish,consentChecked){
   toast(publish?'發布中…':'處理中…');
-  api('setStatus',{albumId:albumId,publish:publish}).then(function(res){
+  api('setStatus',{albumId:albumId,publish:publish,consentChecked:!!consentChecked}).then(function(res){
     if(!res.ok){ toast(res.error); return; }
     renderAlbums(res.albums);
     toast(publish?'已發布 ✓':'已收回為草稿');
